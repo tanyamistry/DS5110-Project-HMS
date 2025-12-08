@@ -5,6 +5,14 @@ from tkinter import ttk, messagebox
 
 from db import get_connection
 from ui import apply_theme, maximize_window, build_header
+from validators import (
+    validate_mrn,
+    validate_required_field,
+    validate_date_of_birth,
+    validate_sex,
+    validate_phone_number,
+    validate_email,
+)
 
 
 class PatientsWindow(tk.Toplevel):
@@ -136,18 +144,42 @@ class PatientsWindow(tk.Toplevel):
         self._clear_form()
 
     def _validate(self) -> bool:
-        if not self.mrn_var.get().strip() or not self.name_var.get().strip():
-            messagebox.showerror("Validation error", "MRN and full name are required.")
+        # Validate MRN
+        is_valid, error_msg = validate_mrn(self.mrn_var.get())
+        if not is_valid:
+            messagebox.showerror("Validation error", error_msg)
             return False
-        if not self.dob_var.get().strip():
-            messagebox.showerror("Validation error", "Date of birth is required.")
+        
+        # Validate full name
+        is_valid, error_msg = validate_required_field(self.name_var.get(), "Full name")
+        if not is_valid:
+            messagebox.showerror("Validation error", error_msg)
             return False
-        if self.sex_var.get().strip() not in ("M", "F", "O"):
-            messagebox.showerror("Validation error", "Sex must be M, F, or O.")
+        
+        # Validate date of birth
+        is_valid, error_msg = validate_date_of_birth(self.dob_var.get())
+        if not is_valid:
+            messagebox.showerror("Validation error", error_msg)
             return False
-        if not self.phone_var.get().strip():
-            messagebox.showerror("Validation error", "Phone number is required.")
+        
+        # Validate sex
+        is_valid, error_msg = validate_sex(self.sex_var.get())
+        if not is_valid:
+            messagebox.showerror("Validation error", error_msg)
             return False
+        
+        # Validate phone number
+        is_valid, error_msg = validate_phone_number(self.phone_var.get())
+        if not is_valid:
+            messagebox.showerror("Validation error", error_msg)
+            return False
+        
+        # Validate email (optional field)
+        is_valid, error_msg = validate_email(self.email_var.get())
+        if not is_valid:
+            messagebox.showerror("Validation error", error_msg)
+            return False
+        
         return True
 
     def _on_save(self) -> None:

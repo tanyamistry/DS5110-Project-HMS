@@ -5,6 +5,11 @@ from tkinter import ttk, messagebox
 
 from db import get_connection
 from ui import apply_theme, maximize_window, build_header
+from validators import (
+    validate_required_field,
+    validate_date,
+    validate_amount,
+)
 
 
 class TreatmentsWindow(tk.Toplevel):
@@ -133,23 +138,30 @@ class TreatmentsWindow(tk.Toplevel):
         self._clear_form()
 
     def _validate(self) -> bool:
-        if not self.patient_name_var.get().strip():
-            messagebox.showerror("Validation error", "Patient name is required for lookup.")
+        # Validate patient name
+        is_valid, error_msg = validate_required_field(self.patient_name_var.get(), "Patient name")
+        if not is_valid:
+            messagebox.showerror("Validation error", error_msg)
             return False
-        if not self.date_var.get().strip():
-            messagebox.showerror("Validation error", "Treatment date is required.")
+        
+        # Validate treatment date
+        is_valid, error_msg = validate_date(self.date_var.get(), "Treatment date")
+        if not is_valid:
+            messagebox.showerror("Validation error", error_msg)
             return False
-        if not self.description_var.get().strip():
-            messagebox.showerror("Validation error", "Description is required.")
+        
+        # Validate description
+        is_valid, error_msg = validate_required_field(self.description_var.get(), "Description")
+        if not is_valid:
+            messagebox.showerror("Validation error", error_msg)
             return False
-        if not self.cost_var.get().strip():
-            messagebox.showerror("Validation error", "Cost is required.")
+        
+        # Validate cost
+        is_valid, error_msg = validate_amount(self.cost_var.get(), "Cost")
+        if not is_valid:
+            messagebox.showerror("Validation error", error_msg)
             return False
-        try:
-            float(self.cost_var.get().strip())
-        except ValueError:
-            messagebox.showerror("Validation error", "Cost must be a number.")
-            return False
+        
         return True
 
     def _on_save(self) -> None:

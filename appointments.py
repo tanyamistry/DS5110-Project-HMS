@@ -5,6 +5,11 @@ from tkinter import ttk, messagebox
 
 from db import get_connection
 from ui import apply_theme, maximize_window, build_header
+from validators import (
+    validate_required_field,
+    validate_appointment_date,
+    validate_time,
+)
 
 
 class AppointmentsWindow(tk.Toplevel):
@@ -178,15 +183,29 @@ class AppointmentsWindow(tk.Toplevel):
         self._clear_form()
 
     def _validate(self) -> bool:
+        # Validate patient is selected
         if not self.patient_label_var.get().strip():
             messagebox.showerror("Validation error", "Patient is required.")
             return False
-        if not self.date_var.get().strip() or not self.time_var.get().strip():
-            messagebox.showerror("Validation error", "Date and time are required.")
+        
+        # Validate appointment date
+        is_valid, error_msg = validate_appointment_date(self.date_var.get())
+        if not is_valid:
+            messagebox.showerror("Validation error", error_msg)
             return False
-        if not self.doctor_var.get().strip():
-            messagebox.showerror("Validation error", "Doctor is required.")
+        
+        # Validate appointment time
+        is_valid, error_msg = validate_time(self.time_var.get(), "Appointment time")
+        if not is_valid:
+            messagebox.showerror("Validation error", error_msg)
             return False
+        
+        # Validate doctor name
+        is_valid, error_msg = validate_required_field(self.doctor_var.get(), "Doctor")
+        if not is_valid:
+            messagebox.showerror("Validation error", error_msg)
+            return False
+        
         return True
 
     def _on_save(self) -> None:

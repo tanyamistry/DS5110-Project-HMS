@@ -5,6 +5,7 @@ from tkinter import ttk, messagebox
 
 from db import get_connection
 from ui import apply_theme, maximize_window, build_header
+from validators import validate_required_field, validate_amount
 
 
 class BillingWindow(tk.Toplevel):
@@ -143,17 +144,18 @@ class BillingWindow(tk.Toplevel):
         self._clear_form()
 
     def _validate(self) -> bool:
-        if not self.patient_name_var.get().strip():
-            messagebox.showerror("Validation error", "Patient name is required for lookup.")
+        # Validate patient name
+        is_valid, error_msg = validate_required_field(self.patient_name_var.get(), "Patient name")
+        if not is_valid:
+            messagebox.showerror("Validation error", error_msg)
             return False
-        if not self.amount_var.get().strip():
-            messagebox.showerror("Validation error", "Total amount is required.")
+        
+        # Validate amount
+        is_valid, error_msg = validate_amount(self.amount_var.get(), "Total amount")
+        if not is_valid:
+            messagebox.showerror("Validation error", error_msg)
             return False
-        try:
-            float(self.amount_var.get().strip())
-        except ValueError:
-            messagebox.showerror("Validation error", "Total amount must be a number.")
-            return False
+        
         return True
 
     def _on_save(self) -> None:
