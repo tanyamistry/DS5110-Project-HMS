@@ -1,211 +1,127 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from db import init_db, get_connection
-from patients import PatientWindow
-from appointments import AppointmentWindow
-from rooms import RoomAssignmentWindow
-from treatments import TreatmentWindow
+from ui import apply_theme, maximize_window, build_header
+from db import init_db
+from patients import PatientsWindow
+from appointments import AppointmentsWindow
+from rooms import RoomsWindow
+from treatments import TreatmentsWindow
 from billing import BillingWindow
 
 
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "admin123"
+
+
 class LoginWindow(tk.Tk):
-    """
-    Simple login window with a single admin role.
-    In a more advanced version, users could be stored in the database.
-    """
-
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
-        self.title("Hospital Admin Login")
-        self.geometry("520x320")
-        self.resizable(False, False)
+        self.title("Hospital Management System - Login")
 
-        self._configure_style()
-        self._build_ui()
-
-    def _configure_style(self) -> None:
-        """
-        Configure a simple hospital-like color palette for all ttk widgets.
-        """
-        style = ttk.Style(self)
-        try:
-            style.theme_use("clam")
-        except tk.TclError:
-            # fall back silently if theme is not available
-            pass
-
-        primary_bg = "#f4fbff"   # soft hospital blue
-        header_bg = "#e1f0ff"
-        accent = "#2a7fba"
-        text_fg = "#12354a"
-
-        # set window background
-        self.configure(bg=primary_bg)
-
-        # base widgets
-        style.configure("TFrame", background=primary_bg)
-        style.configure("TLabelframe", background=primary_bg, borderwidth=1)
-        style.configure(
-            "TLabelframe.Label",
-            background=primary_bg,
-            foreground=text_fg,
-            font=("Segoe UI", 10, "bold"),
-        )
-        style.configure("TLabel", background=primary_bg, foreground=text_fg)
-
-        # entries
-        style.configure("TEntry", fieldbackground="white")
-
-        # buttons
-        style.configure(
-            "TButton",
-            background=accent,
-            foreground="white",
-            padding=6,
-            borderwidth=0,
-        )
-        style.map(
-            "TButton",
-            background=[("active", "#245f8f"), ("pressed", "#1c4c6f")],
-        )
-
-        # treeview
-        style.configure(
-            "Treeview",
-            background="white",
-            fieldbackground="white",
-            foreground=text_fg,
-            borderwidth=0,
-        )
-        style.map("Treeview", background=[("selected", "#c0e6ff")])
-        style.configure(
-            "Treeview.Heading",
-            background=header_bg,
-            foreground=text_fg,
-            font=("Segoe UI", 9, "bold"),
-        )
-
-    def _build_ui(self) -> None:
-        container = ttk.Frame(self, padding=20)
-        container.pack(expand=True, fill="both")
-
-        title = ttk.Label(container, text="Hospital Administration", font=("Segoe UI", 16, "bold"))
-        title.grid(row=0, column=0, columnspan=2, pady=(0, 20))
-
-        ttk.Label(container, text="Username").grid(row=1, column=0, sticky="w")
-        ttk.Label(container, text="Password").grid(row=2, column=0, sticky="w", pady=(10, 0))
+        apply_theme(self)
+        maximize_window(self)
 
         self.username_var = tk.StringVar()
         self.password_var = tk.StringVar()
 
-        username_entry = ttk.Entry(container, textvariable=self.username_var)
-        password_entry = ttk.Entry(container, textvariable=self.password_var, show="*")
+        container = ttk.Frame(self, padding=24)
+        container.pack(expand=True, fill="both")
 
-        username_entry.grid(row=1, column=1, sticky="ew", padx=(10, 0))
-        password_entry.grid(row=2, column=1, sticky="ew", padx=(10, 0), pady=(10, 0))
+        container.columnconfigure(0, weight=1)
+        container.rowconfigure(0, weight=1)
 
-        container.columnconfigure(1, weight=1)
+        card = ttk.Frame(container, padding=28, style="TFrame")
+        card.grid(row=0, column=0, sticky="nsew")
+        card.columnconfigure(0, weight=1)
 
-        login_button = ttk.Button(container, text="Log in", command=self._on_login)
-        login_button.grid(row=3, column=0, columnspan=2, pady=(20, 0))
+        header = build_header(card, "CityCare General Hospital", "Administrator portal")
+        header.grid(row=0, column=0, sticky="w", pady=(0, 18))
 
-    def _on_login(self) -> None:
-        username = self.username_var.get().strip()
-        password = self.password_var.get().strip()
+        form = ttk.Frame(card)
+        form.grid(row=1, column=0, sticky="n", pady=(10, 0))
 
-        # For this project we keep it simple:
-        # hard-coded admin credentials.
-        if username == "admin" and password == "admin":
+        ttk.Label(form, text="Username").grid(row=0, column=0, sticky="w", pady=6)
+        ttk.Entry(form, textvariable=self.username_var, width=30).grid(row=1, column=0, sticky="w")
+
+        ttk.Label(form, text="Password").grid(row=2, column=0, sticky="w", pady=(18, 6))
+        ttk.Entry(form, textvariable=self.password_var, width=30, show="*").grid(row=3, column=0, sticky="w")
+
+        login_btn = ttk.Button(form, text="Sign in", style="Accent.TButton", command=self._on_login)
+        login_btn.grid(row=4, column=0, pady=(22, 0), sticky="w")
+
+        self.bind("<Return>", lambda e: self._on_login())
+
+    def _on_login(self):
+        if self.username_var.get().strip() == ADMIN_USERNAME and self.password_var.get().strip() == ADMIN_PASSWORD:
             self.destroy()
-            app = AdminDashboard()
-            app.mainloop()
+            dash = AdminDashboard()
+            dash.mainloop()
         else:
             messagebox.showerror("Login failed", "Invalid username or password.")
 
 
 class AdminDashboard(tk.Tk):
-    """
-    Main admin dashboard:
-    - Manage patients
-    - Manage appointments
-    """
-
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
-        self.title("Hospital Administration Dashboard")
-        self.geometry("500x300")
-        self.resizable(False, False)
-        self._build_ui()
+        self.title("Hospital Management System - Admin dashboard")
 
-    def _build_ui(self) -> None:
-        container = ttk.Frame(self, padding=20)
+        apply_theme(self)
+        maximize_window(self)
+
+        container = ttk.Frame(self, padding=24)
         container.pack(expand=True, fill="both")
 
-        title = ttk.Label(container, text="Admin Dashboard", font=("Segoe UI", 18, "bold"))
-        title.pack(pady=(0, 20))
-
-        btn_patients = ttk.Button(
+        header = build_header(
             container,
-            text="Patient Registry",
-            width=25,
-            command=self._open_patients,
+            "Administration dashboard",
+            "Manage patients, appointments, rooms, treatments, and billing",
         )
-        btn_patients.pack(pady=5)
+        header.pack(fill="x", pady=(0, 16))
 
-        btn_appointments = ttk.Button(
-            container,
-            text="Appointments",
-            width=25,
-            command=self._open_appointments,
-        )
-        btn_appointments.pack(pady=5)
+        main = ttk.Frame(container)
+        main.pack(expand=True, fill="both")
 
-        btn_rooms = ttk.Button(
-            container,
-            text="Room assignments",
-            width=25,
-            command=self._open_rooms,
-        )
-        btn_rooms.pack(pady=5)
+        main.columnconfigure(0, weight=1)
+        main.columnconfigure(1, weight=1)
+        main.rowconfigure(0, weight=1)
 
-        btn_treatments = ttk.Button(
-            container,
-            text="Treatments",
-            width=25,
-            command=self._open_treatments,
-        )
-        btn_treatments.pack(pady=5)
+        left = ttk.Frame(main)
+        left.grid(row=0, column=0, sticky="nsew", padx=(0, 12))
+        right = ttk.Frame(main)
+        right.grid(row=0, column=1, sticky="nsew", padx=(12, 0))
 
-        btn_billing = ttk.Button(
-            container,
-            text="Billing / Invoices",
-            width=25,
-            command=self._open_billing,
-        )
-        btn_billing.pack(pady=5)
+        ttk.Label(left, text="Core modules", style="Subheader.TLabel").pack(anchor="w", pady=(0, 8))
+        ttk.Button(left, text="Patients", style="Accent.TButton", command=self._open_patients, width=28).pack(anchor="w", pady=4)
+        ttk.Button(left, text="Appointments", style="Accent.TButton", command=self._open_appointments, width=28).pack(anchor="w", pady=4)
+        ttk.Button(left, text="Room assignments", style="Accent.TButton", command=self._open_rooms, width=28).pack(anchor="w", pady=4)
 
-        btn_quit = ttk.Button(container, text="Exit", width=25, command=self.destroy)
-        btn_quit.pack(pady=(20, 0))
+        ttk.Label(right, text="Clinical and billing", style="Subheader.TLabel").pack(anchor="w", pady=(0, 8))
+        ttk.Button(right, text="Treatments", style="Accent.TButton", command=self._open_treatments, width=28).pack(anchor="w", pady=4)
+        ttk.Button(right, text="Billing & invoices", style="Accent.TButton", command=self._open_billing, width=28).pack(anchor="w", pady=4)
 
-    def _open_patients(self) -> None:
-        PatientWindow(self)
+        bottom = ttk.Frame(container)
+        bottom.pack(fill="x", pady=(18, 0))
+        ttk.Label(bottom, text="Logged in as: admin", style="Subheader.TLabel").pack(side="left")
+        ttk.Button(bottom, text="Exit", style="Secondary.TButton", command=self.destroy).pack(side="right")
 
-    def _open_appointments(self) -> None:
-        AppointmentWindow(self)
+    def _open_patients(self):
+        PatientsWindow(self)
 
-    def _open_rooms(self) -> None:
-        RoomAssignmentWindow(self)
+    def _open_appointments(self):
+        AppointmentsWindow(self)
 
-    def _open_treatments(self) -> None:
-        TreatmentWindow(self)
+    def _open_rooms(self):
+        RoomsWindow(self)
 
-    def _open_billing(self) -> None:
+    def _open_treatments(self):
+        TreatmentsWindow(self)
+
+    def _open_billing(self):
         BillingWindow(self)
 
 
 if __name__ == "__main__":
-    # Ensure database and tables exist before launching UI
     init_db()
-    login = LoginWindow()
-    login.mainloop()
+    app = LoginWindow()
+    app.mainloop()
